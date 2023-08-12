@@ -25,6 +25,7 @@ from torch.cuda.amp import autocast, GradScaler
 from lib.infer_pack import commons
 from time import sleep
 from time import time as ttime
+from prodigyopt import Prodigy
 from lib.train.data_utils import (
     TextAudioLoaderMultiNSFsid,
     TextAudioLoader,
@@ -158,17 +159,20 @@ def run(rank, n_gpus, hps):
     net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm)
     if torch.cuda.is_available():
         net_d = net_d.cuda(rank)
-    optim_g = torch.optim.AdamW(
+    prodigy_weight_decay = 0.01
+    prodigy_use_bias_correction = True
+    prodigy_d_coef = 2.0
+    optim_g = Prodigy(
         net_g.parameters(),
-        hps.train.learning_rate,
-        betas=hps.train.betas,
-        eps=hps.train.eps,
+        weight_decay=prodigy_weight_decay,
+        use_bias_correction=prodigy_use_bias_correction,
+        d_coef = prodigy_d_coef,
     )
-    optim_d = torch.optim.AdamW(
+    optim_d = Prodigy(
         net_d.parameters(),
-        hps.train.learning_rate,
-        betas=hps.train.betas,
-        eps=hps.train.eps,
+        weight_decay=prodigy_weight_decay,
+        use_bias_correction=prodigy_use_bias_correction,
+        d_coef = prodigy_d_coef,
     )
     # net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
     # net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
